@@ -2,14 +2,14 @@
 
 # ==============================================================================
 # 🦞 OPENCLAW ANDROID TOOLKIT (Termux)
-# Version: 1.2.5
-# Purpose: Clean installation, patching, and uninstallation of OpenClaw.
+# Version: 1.3.0
+# Purpose: Clean installation, patching, and uninstallation of OpenClaw & Gemini.
 # ==============================================================================
 
 set -e
 
 # --- 1. COLORS & GLOBALS ---
-VERSION="1.2.5"
+VERSION="1.3.0"
 ARCH_TYPE=$(uname -m)
 GREEN=$(printf '\033[0;32m')
 BLUE=$(printf '\033[0;34m')
@@ -59,9 +59,9 @@ execute() {
     
     # Clean the line and show final status
     if [ $exit_code -eq 0 ]; then
-        printf "\r${BLUE}==>${NC} %s %s\n" "$msg" "${GREEN}Done.${NC}"
+        printf "\r${CLEAR_LINE}${BLUE}==>${NC} %s %s\n" "$msg" "${GREEN}Done.${NC}"
     else
-        printf "\r${BLUE}==>${NC} %s %s\n" "$msg" "${RED}Failed!${NC}"
+        printf "\r${CLEAR_LINE}${BLUE}==>${NC} %s %s\n" "$msg" "${RED}Failed!${NC}"
         echo -e "\n${RED}Error details found in $LOG_FILE:${NC}"
         tail -n 10 "$LOG_FILE"
         exit 1
@@ -75,7 +75,7 @@ check_termux() {
     fi
 }
 
-# --- 3. INSTALLATION LOGIC ---
+# --- 3. OPENCLAW INSTALLATION ---
 
 install_openclaw() {
     rm -f "$LOG_FILE"
@@ -103,8 +103,6 @@ install_openclaw() {
     openclaw doctor >> "$LOG_FILE" 2>&1 || true
     if [ -f "$CONFIG_PATH" ]; then
         tmp_cfg=$(mktemp)
-        # 1. Enable Plugins
-        # 2. Force Termux PATH for child processes (Fixes Skill Installation)
         jq '.plugins.entries.telegram.enabled = true | 
             .plugins.entries.whatsapp.enabled = true | 
             .plugins.entries.slack.enabled = true |
@@ -119,7 +117,7 @@ install_openclaw() {
     echo -e "\n${GREEN}✅ OpenClaw successfully installed and patched!${NC}"
     echo -e "\n${YELLOW}⚠️  NEXT STEPS:${NC}"
     echo -e "1. Run ${GREEN}openclaw onboard${NC} to configure your API keys."
-    echo -e "2. Run this script again and choose ${BLUE}Option 2${NC} if you want background service."
+    echo -e "2. Use ${BLUE}Option 3${NC} in this script to configure background service."
     echo -e "\n${RED}🛑 DO NOT USE 'openclaw update'${NC}"
     echo -e "   This will break patches. Use Option 1 of this script to update."
 }
@@ -150,7 +148,30 @@ apply_patches() {
     execute "find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/usr/bin/npm|$TERMUX_BIN/npm|g' {} + 2>/dev/null && find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/bin/npm|$TERMUX_BIN/npm|g' {} + 2>/dev/null && find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/usr/bin/node|$TERMUX_BIN/node|g' {} + 2>/dev/null && find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/bin/node|$TERMUX_BIN/node|g' {} + 2>/dev/null || true" "$msg"
 }
 
-# --- 4. SERVICE MANAGEMENT ---
+# --- 4. GEMINI CLI INSTALLATION ---
+
+install_gemini_cli() {
+    echo -e "\n${BLUE}✨ Setting up Gemini CLI...${NC}"
+    execute "pkg update -y" "Updating packages"
+    execute "pkg install -y python make clang pkg-config" "Installing build tools"
+    
+    status_msg "Setting NDK environment"
+    export npm_config_android_ndk_path=$PREFIX
+    export ANDROID_NDK_HOME=$PREFIX
+    export ANDROID_NDK_ROOT=$PREFIX
+    success_msg
+
+    execute "npm i -g @google/gemini-cli" "Installing @google/gemini-cli"
+    
+    if command -v gemini >/dev/null 2>&1 || command -v gemini-cli >/dev/null 2>&1; then
+        echo -e "${GREEN}\nGemini CLI successfully installed!${NC}"
+        echo -e "You can now run: ${BLUE}gemini --help${NC}"
+    else
+        error_msg "Installation finished but 'gemini' command not found in PATH."
+    fi
+}
+
+# --- 5. SERVICE MANAGEMENT ---
 
 manage_service() {
     echo -e "\n${BLUE}⚙️  BACKGROUND SERVICE MANAGEMENT${NC}"
@@ -184,58 +205,65 @@ remove_service_files() {
     echo -e "${GREEN}Background service configuration removed.${NC}"
 }
 
-# --- 5. UNINSTALLATION LOGIC ---
+# --- 6. UNINSTALLATION LOGIC ---
 
-uninstall_openclaw() {
+uninstall_menu() {
     echo -e "\n${RED}⚠️  UNINSTALLATION MENU${NC}"
-    echo "1) Remove OpenClaw only (Keep Node.js/Go/FFmpeg)"
-    echo "2) Full Clean (Remove OpenClaw AND all installed packages)"
-    echo "3) Cancel"
-    read -p "Select option [1-3]: " UN_CHOICE
+    echo "1) Remove OpenClaw only"
+    echo "2) Remove Gemini CLI only"
+    echo "3) Full Clean (Everything)"
+    echo "4) Cancel"
+    read -p "Select option [1-4]: " UN_CHOICE
 
     case $UN_CHOICE in
-        1) soft_cleanup; echo -e "${GREEN}\nOpenClaw removed. Dependencies were kept.${NC}" ;;
-        2) full_cleanup; echo -e "${GREEN}\nTermux environment cleaned.${NC}" ;;
+        1) soft_cleanup_openclaw; echo -e "${GREEN}\nOpenClaw removed.${NC}" ;;
+        2) uninstall_gemini; echo -e "${GREEN}\nGemini CLI removed.${NC}" ;;
+        3) full_cleanup; echo -e "${GREEN}\nEverything cleaned.${NC}" ;;
         *) echo -e "${BLUE}Uninstallation cancelled.${NC}\n" ;;
     esac
 }
 
-soft_cleanup() {
+soft_cleanup_openclaw() {
     echo -e "${YELLOW}Cleaning up OpenClaw...${NC}"
     remove_service_files
-
     if [ -f "$TERMUX_BIN/npm" ]; then
         execute "\"$TERMUX_BIN/npm\" uninstall -g openclaw" "Uninstalling OpenClaw"
     else
         execute "npm uninstall -g openclaw" "Uninstalling OpenClaw"
     fi
+    rm -rf "$HOME/.openclaw"
+}
 
-    execute "rm -rf '$HOME/.openclaw'" "Cleaning local data"
+uninstall_gemini() {
+    execute "npm uninstall -g @google/gemini-cli" "Uninstalling Gemini CLI"
 }
 
 full_cleanup() {
-    soft_cleanup
-    execute "pkg uninstall -y build-essential libvips openssh git jq python3 pkg-config tmux binutils termux-services ffmpeg golang nodejs-22 tur-repo" "Uninstalling system packages"
+    soft_cleanup_openclaw
+    uninstall_gemini
+    execute "pkg uninstall -y build-essential libvips openssh git jq python3 pkg-config tmux binutils termux-services ffmpeg golang nodejs-22 tur-repo clang make python" "Uninstalling system packages"
 }
 
-# --- 6. MAIN MENU ---
+# --- 7. MAIN MENU ---
 
 clear
 echo -e "${BLUE}====================================================${NC}"
 echo -e "${BLUE}       🦞 OPENCLAW ANDROID TOOLKIT v$VERSION        ${NC}"
 echo -e "${BLUE}====================================================${NC}"
 echo -e "1) ${GREEN}Install/Repair${NC} OpenClaw"
-echo -e "2) ${BLUE}Manage${NC} Background Service"
-echo -e "3) ${RED}Uninstall${NC} OpenClaw"
-echo -e "4) Exit"
+echo -e "2) ${YELLOW}Install/Repair${NC} Gemini CLI"
+echo -e "3) ${BLUE}Manage${NC} Background Service"
+echo -e "4) ${RED}Uninstall${NC} Software"
+echo -e "5) Exit"
 echo -e "${BLUE}====================================================${NC}"
-read -p "What would you like to do? [1-4]: " MAIN_CHOICE
+read -p "What would you like to do? [1-5]: " MAIN_CHOICE
 
 check_termux
 
 case $MAIN_CHOICE in
     1) install_openclaw ;;
-    2) manage_service ;;
-    3) uninstall_openclaw ;;
+    2) install_gemini_cli ;;
+    3) manage_service ;;
+    4) uninstall_menu ;;
     *) exit 0 ;;
 esac
