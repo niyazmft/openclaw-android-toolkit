@@ -2,14 +2,14 @@
 
 # ==============================================================================
 # 🦞 OPENCLAW ANDROID TOOLKIT (Termux)
-# Version: 1.2.4
+# Version: 1.2.5
 # Purpose: Clean installation, patching, and uninstallation of OpenClaw.
 # ==============================================================================
 
 set -e
 
 # --- 1. COLORS & GLOBALS ---
-VERSION="1.2.4"
+VERSION="1.2.5"
 ARCH_TYPE=$(uname -m)
 GREEN=$(printf '\033[0;32m')
 BLUE=$(printf '\033[0;34m')
@@ -59,9 +59,9 @@ execute() {
     
     # Clean the line and show final status
     if [ $exit_code -eq 0 ]; then
-        printf "\r${CLEAR_LINE}${BLUE}==>${NC} %s %s\n" "$msg" "${GREEN}Done.${NC}"
+        printf "\r${BLUE}==>${NC} %s %s\n" "$msg" "${GREEN}Done.${NC}"
     else
-        printf "\r${CLEAR_LINE}${BLUE}==>${NC} %s %s\n" "$msg" "${RED}Failed!${NC}"
+        printf "\r${BLUE}==>${NC} %s %s\n" "$msg" "${RED}Failed!${NC}"
         echo -e "\n${RED}Error details found in $LOG_FILE:${NC}"
         tail -n 10 "$LOG_FILE"
         exit 1
@@ -97,17 +97,23 @@ install_openclaw() {
 
     apply_patches
     
-    # Registry Initialization
+    # Registry & Environment Initialization
     CONFIG_PATH="$HOME/.openclaw/openclaw.json"
-    execute "openclaw doctor >> '$LOG_FILE' 2>&1 || true && if [ -f '$CONFIG_PATH' ]; then tmp_cfg=\$(mktemp); jq '.plugins.entries.telegram.enabled = true | .plugins.entries.whatsapp.enabled = true | .plugins.entries.slack.enabled = true' '$CONFIG_PATH' > \"\$tmp_cfg\" && mv \"\$tmp_cfg\" '$CONFIG_PATH'; fi" "Initializing registry"
+    status_msg "Initializing and configuring environment"
+    openclaw doctor >> "$LOG_FILE" 2>&1 || true
+    if [ -f "$CONFIG_PATH" ]; then
+        tmp_cfg=$(mktemp)
+        # 1. Enable Plugins
+        # 2. Force Termux PATH for child processes (Fixes Skill Installation)
+        jq '.plugins.entries.telegram.enabled = true | 
+            .plugins.entries.whatsapp.enabled = true | 
+            .plugins.entries.slack.enabled = true |
+            .env.PATH = "/data/data/com.termux/files/usr/bin:/bin"' "$CONFIG_PATH" > "$tmp_cfg" && mv "$tmp_cfg" "$CONFIG_PATH"
+    fi
+    success_msg
     
-    # Proactive Plugin Installation (Try to fix the 'not available' bug early)
-    # We do this after core patching so the installer uses the correct npm paths
     execute "openclaw plugins install telegram whatsapp slack || true" "Pre-installing channel plugins"
-    
-    # Second Patch Pass (Ensure newly installed plugins are also patched)
     apply_patches "silent"
-    
     execute "openclaw plugins list" "Warming up plugin engine"
     
     echo -e "\n${GREEN}✅ OpenClaw successfully installed and patched!${NC}"
@@ -122,7 +128,7 @@ apply_patches() {
     local silent=$1
     [[ "$silent" != "silent" ]] && echo -e "\n${BLUE}🩹 Applying Android compatibility patches:${NC}"
 
-    # 1. Koffi Patch (Only on system root)
+    # 1. Koffi Patch
     KOFFI_SRC="$OPENCLAW_ROOT/node_modules/koffi/lib/native/base/base.cc"
     if [ -f "$KOFFI_SRC" ] && [[ "$silent" != "silent" ]]; then
         execute "sed -i 's/renameat2(AT_FDCWD, src_filename, AT_FDCWD, dest_filename, RENAME_NOREPLACE)/rename(src_filename, dest_filename)/g' '$KOFFI_SRC'" "Patching Koffi native library"
@@ -138,7 +144,7 @@ apply_patches() {
     [[ "$silent" == "silent" ]] && msg="Patching plugin paths"
     execute "mkdir -p '$HOME/.openclaw/tmp' && find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/tmp/openclaw|$HOME/.openclaw/tmp|g' {} + 2>/dev/null || true" "$msg"
 
-    # 3. NPM & Node Path Fix (Core + Home - Aggressive)
+    # 3. NPM & Node Path Fix (Aggressive)
     msg="Fixing hardcoded system paths"
     [[ "$silent" == "silent" ]] && msg="Finalizing environment paths"
     execute "find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/usr/bin/npm|$TERMUX_BIN/npm|g' {} + 2>/dev/null && find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/bin/npm|$TERMUX_BIN/npm|g' {} + 2>/dev/null && find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/usr/bin/node|$TERMUX_BIN/node|g' {} + 2>/dev/null && find '$OPENCLAW_ROOT' '$HOME/.openclaw' -type f -name '*.js' -exec sed -i 's|/bin/node|$TERMUX_BIN/node|g' {} + 2>/dev/null || true" "$msg"

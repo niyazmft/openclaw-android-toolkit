@@ -47,6 +47,7 @@ To keep OpenClaw running even after you close Termux:
 - 🛠 **Zero-Config Patching**: Automatically fixes the `koffi` native bridge and `renameat2` kernel crashes.
 - 📂 **Path Awareness**: Aggressively redirects `/bin/npm`, `/bin/node`, and `/tmp` to Termux-compatible directories.
 - 🔌 **Plugin Ready**: Auto-initializes and patches Telegram, WhatsApp, and Slack plugins during setup.
+- 🧩 **Skill Compatibility**: Forces correct Termux PATH inheritance to ensure OpenClaw "Skills" can install their own dependencies via NPM.
 - 🔋 **Battery Efficient**: Optimized for external API usage to prevent mobile CPU throttling.
 - 🧼 **Clean Management**: Includes a modular uninstaller with "Soft" and "Full Clean" options.
 
