@@ -1,0 +1,17 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# OpenClaw local data (if running locally during dev)
+.openclaw/
+openclaw.json
+
+# Node/Logs
+node_modules/
+*.log
+npm-debug.log*
+
+# Temp files
+*.tmp
+*.swp
+firebase-debug.log
