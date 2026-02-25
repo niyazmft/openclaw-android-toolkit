@@ -37,11 +37,10 @@ Initialize your account and API providers:
 ```bash
 openclaw onboard
 ```
-*Select **Manual Mode** and choose an external provider (OpenRouter, OpenAI, etc.).*
+*Select **QuickStart** and choose an external provider (OpenRouter, OpenAI, etc.).*
 
 <p align="center">
   <img src="./assets/1-openclaw_onboard.jpg" width="300" alt="Onboarding 1">
-  <img src="./assets/2-openclaw_onboard.jpg" width="300" alt="Onboarding 2">
 </p>
 
 ### 4. Background Service (Optimized)
