@@ -99,7 +99,11 @@ install_openclaw() {
     
     # Registry & Environment Initialization
     CONFIG_PATH="$HOME/.openclaw/openclaw.json"
-    status_msg "Initializing and configuring environment"
+    status_msg "Initializing environment"
+    # Ensure workspace structure exists to prevent tool errors
+    mkdir -p "$HOME/.openclaw/workspace/memory"
+    mkdir -p "$HOME/.openclaw/workspace/skills"
+    
     openclaw doctor >> "$LOG_FILE" 2>&1 || true
     if [ -f "$CONFIG_PATH" ]; then
         tmp_cfg=$(mktemp)
