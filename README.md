@@ -1,5 +1,7 @@
 # 🦞 OpenClaw Android (Termux) Toolkit
 
+![OpenClaw Android Cover](./assets/Cover.png)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/niyazmft/openclaw-android-toolkit)
 [![Platform](https://img.shields.io/badge/Platform-Android%20(Termux)-green.svg)](https://termux.dev/)
@@ -12,7 +14,7 @@ A high-performance, automated toolkit for running [OpenClaw](https://github.com/
 
 - **OS**: Android 9.0 and above.
 - **Architecture**: Tested on `armv8l` (32-bit) and `aarch64` (64-bit) CPUs.
-- **Environment**: Termux (Native, no proot required).
+- **Optimized for**: Honor 8X (4GB), Huawei Y6 (2GB), and similar hardware.
 
 ---
 
@@ -35,6 +37,17 @@ openclaw onboard
 ```
 *Select **Manual Mode** and choose an external provider (OpenRouter, OpenAI, etc.).*
 
+![OpenClaw Onboarding 1](./assets/1-openclaw_onboard.jpg)
+![OpenClaw Onboarding 2](./assets/2-openclaw_onboard.jpg)
+
+### 4. Background Service (Optimized)
+To keep OpenClaw running even after you close Termux:
+1. Run the toolkit again and choose **Option 3 (Manage Background Service)**.
+2. Select your **Performance Profile**.
+3. Start the service: `sv up openclaw`
+
+![OpenClaw Gateway Running](./assets/3-openclaw_gateway.jpg)
+
 ---
 
 ## ✨ Key Features
@@ -43,8 +56,10 @@ openclaw onboard
 - 📂 **Path Awareness**: Aggressively redirects `/bin/npm`, `/bin/node`, and `/tmp` to Termux-compatible directories.
 - 🔌 **Plugin Ready**: Auto-initializes and patches Telegram, WhatsApp, and Slack plugins during setup.
 - 🧩 **Gemini CLI Support**: Dedicated installer for `@google/gemini-cli` with NDK environment optimizations.
-- 🔋 **Battery Efficient**: Optimized for external API usage to prevent mobile CPU throttling.
+- ⚡ **Performance Profiles**: Intelligent memory limits (512MB/1024MB) to prevent Android system throttling.
 - 🧼 **Clean Management**: Includes a modular uninstaller with specific cleanup options for each tool.
+
+![Gemini CLI Interface](./assets/4-gemini_cli.jpg)
 
 ---
 

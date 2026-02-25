@@ -7,7 +7,8 @@ Provide a "one-click" reliable installation process for OpenClaw and Gemini CLI 
 
 ## 🛠 Core Components
 - `install.sh`: The main automation script (v1.3.0).
-- `README.md`: Combined documentation for quick start, management, and technical overview.
+- `README.md`: Combined documentation with visual setup guides.
+- `assets/`: Screenshots and media for documentation.
 - `.gitignore`: Standard exclusion list for Android/Termux development.
 
 ## 📜 Key Workflows
