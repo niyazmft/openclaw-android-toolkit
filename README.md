@@ -1,6 +1,8 @@
 # 🦞 OpenClaw Android (Termux) Toolkit
 
-![OpenClaw Android Cover](./assets/Cover.png)
+<p align="center">
+  <img src="./assets/Cover.png" width="100%" alt="OpenClaw Android Cover">
+</p>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/niyazmft/openclaw-android-toolkit)
@@ -37,8 +39,10 @@ openclaw onboard
 ```
 *Select **Manual Mode** and choose an external provider (OpenRouter, OpenAI, etc.).*
 
-![OpenClaw Onboarding 1](./assets/1-openclaw_onboard.jpg)
-![OpenClaw Onboarding 2](./assets/2-openclaw_onboard.jpg)
+<p align="center">
+  <img src="./assets/1-openclaw_onboard.jpg" width="300" alt="Onboarding 1">
+  <img src="./assets/2-openclaw_onboard.jpg" width="300" alt="Onboarding 2">
+</p>
 
 ### 4. Background Service (Optimized)
 To keep OpenClaw running even after you close Termux:
@@ -46,7 +50,9 @@ To keep OpenClaw running even after you close Termux:
 2. Select your **Performance Profile**.
 3. Start the service: `sv up openclaw`
 
-![OpenClaw Gateway Running](./assets/3-openclaw_gateway.jpg)
+<p align="center">
+  <img src="./assets/3-openclaw_gateway.jpg" width="300" alt="Gateway Running">
+</p>
 
 ---
 
@@ -59,7 +65,9 @@ To keep OpenClaw running even after you close Termux:
 - ⚡ **Performance Profiles**: Intelligent memory limits (512MB/1024MB) to prevent Android system throttling.
 - 🧼 **Clean Management**: Includes a modular uninstaller with specific cleanup options for each tool.
 
-![Gemini CLI Interface](./assets/4-gemini_cli.jpg)
+<p align="center">
+  <img src="./assets/4-gemini_cli.jpg" width="300" alt="Gemini CLI Interface">
+</p>
 
 ---
 
