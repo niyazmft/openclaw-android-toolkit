@@ -2,14 +2,14 @@
 
 # ==============================================================================
 # 🦞 OPENCLAW ANDROID TOOLKIT (Termux)
-# Version: 1.3.0
+# Version: 1.3.1
 # Purpose: Clean installation, patching, and uninstallation of OpenClaw & Gemini.
 # ==============================================================================
 
 set -e
 
 # --- 1. COLORS & GLOBALS ---
-VERSION="1.3.0"
+VERSION="1.3.1"
 ARCH_TYPE=$(uname -m)
 GREEN=$(printf '\033[0;32m')
 BLUE=$(printf '\033[0;34m')
@@ -371,9 +371,40 @@ setup_service_files() {
         return
     fi
 
-    execute "mkdir -p '$SERVICE_DIR/log' && echo -ne '#!/bin/bash\nexport PATH=\$PATH\nexport npm_execpath=$TERMUX_BIN/npm\nexport NODE_PATH=$TERMUX_BIN/node\nexec openclaw gateway run 2>&1' > '$SERVICE_DIR/run' && echo -ne '#!/bin/bash\nexec svlogd -tt $HOME/.openclaw/logs' > '$SERVICE_DIR/log/run' && chmod +x '$SERVICE_DIR/run' '$SERVICE_DIR/log/run' && mkdir -p '$HOME/.openclaw/logs'" "Creating service files"
+    status_msg "Creating hardened service files"
+    mkdir -p "$SERVICE_DIR/log"
+    mkdir -p "$HOME/.openclaw/logs"
+
+    # Create the hardened run script
+    cat <<EOF > "$SERVICE_DIR/run"
+#!/bin/bash
+# 🦞 OpenClaw Hardened Service
+export TERMUX_BIN='$TERMUX_BIN'
+export PATH="\$TERMUX_BIN:\$PATH"
+export npm_execpath="\$TERMUX_BIN/npm"
+export NODE_PATH="\$TERMUX_BIN/node"
+export HOME='$HOME'
+
+# Cleanup Phase: Kill any ghost processes or hung ports
+pkill -9 -f 'openclaw gateway run' 2>/dev/null || true
+fuser -k 18789/tcp 2>/dev/null || true
+
+# Stabilization Delay: Wait for network/filesystem to be ready
+sleep 5
+
+exec openclaw gateway run 2>&1
+EOF
+
+    # Create the log run script
+    cat <<EOF > "$SERVICE_DIR/log/run"
+#!/bin/bash
+exec svlogd -tt \$HOME/.openclaw/logs
+EOF
+
+    chmod +x "$SERVICE_DIR/run" "$SERVICE_DIR/log/run"
+    success_msg
     
-    echo -e "${GREEN}\nService configured successfully!${NC}"
+    echo -e "${GREEN}\nHardened service configured successfully!${NC}"
     echo -e "Manage with: ${GREEN}sv up openclaw${NC} | ${RED}sv down openclaw${NC}"
 }
 
