@@ -21,6 +21,7 @@ CLEAR_LINE=$(printf '\033[K')
 LOG_FILE="$HOME/openclaw_install.log"
 OPENCLAW_ROOT="/data/data/com.termux/files/usr/lib/node_modules/openclaw"
 SERVICE_DIR="/data/data/com.termux/files/usr/var/service/openclaw"
+N8N_SERVICE_DIR="/data/data/com.termux/files/usr/var/service/n8n"
 TERMUX_BIN="/data/data/com.termux/files/usr/bin"
 
 # Force correct npm path for the current session
@@ -396,14 +397,18 @@ manage_service() {
         echo -e "\n${BLUE}⚙️  BACKGROUND SERVICE MANAGEMENT${NC}"
         echo "1) OpenClaw: Enable/Setup Service"
         echo "2) OpenClaw: Disable/Remove Service"
-        echo "3) n8n: Restart/Revive All"
-        echo "4) Back to Main Menu"
-        read -p "Select option [1-4]: " SVC_CHOICE
+        echo "3) n8n: Enable/Setup Native Service"
+        echo "4) n8n: Disable/Remove Native Service"
+        echo "5) n8n: Restart/Revive All (Legacy)"
+        echo "6) Back to Main Menu"
+        read -p "Select option [1-6]: " SVC_CHOICE
 
         case $SVC_CHOICE in
-            1) confirm_action "setup background service" && { setup_service_files; wait_to_continue; } ;;
-            2) confirm_action "remove background service" && { remove_service_files; wait_to_continue; } ;;
-            3) confirm_action "restart n8n/Tunnel" && { "$HOME/n8n_server/scripts/n8n-monitor.sh"; echo -e "${GREEN}n8n and Tunnel restart triggered.${NC}"; wait_to_continue; } ;;
+            1) if confirm_action "setup background service"; then setup_service_files; wait_to_continue; fi ;;
+            2) if confirm_action "remove background service"; then remove_service_files; wait_to_continue; fi ;;
+            3) if confirm_action "setup n8n native service"; then setup_n8n_service_files; wait_to_continue; fi ;;
+            4) if confirm_action "remove n8n native service"; then remove_n8n_service_files; wait_to_continue; fi ;;
+            5) if confirm_action "restart n8n/Tunnel"; then "$HOME/n8n_server/scripts/n8n-monitor.sh"; echo -e "${GREEN}n8n and Tunnel restart triggered.${NC}"; wait_to_continue; fi ;;
             *) return ;;
         esac
     done
@@ -415,7 +420,7 @@ setup_service_files() {
         return
     fi
 
-    status_msg "Creating hardened service files"
+    status_msg "Creating OpenClaw service files"
     mkdir -p "$SERVICE_DIR/log"
     mkdir -p "$HOME/.openclaw/logs"
 
@@ -423,17 +428,22 @@ setup_service_files() {
     cat <<EOF > "$SERVICE_DIR/run"
 #!/bin/bash
 # 🦞 OpenClaw Hardened Service
+termux-wake-lock
 export TERMUX_BIN='$TERMUX_BIN'
 export PATH="\$TERMUX_BIN:\$PATH"
 export npm_execpath="\$TERMUX_BIN/npm"
 export NODE_PATH="\$TERMUX_BIN/node"
 export HOME='$HOME'
 
-# Cleanup Phase: Kill any ghost processes or hung ports
-pkill -9 -f 'openclaw gateway run' 2>/dev/null || true
+# Janitor Phase: Clean stale locks and temp files
+rm -f "\$HOME/.openclaw/tmp/openclaw.lock"
+rm -rf "\$HOME/.openclaw/tmp/openclaw-*"
+rm -f "/data/data/com.termux/files/usr/var/run/crond.pid"
+
+# Port cleanup
 fuser -k 18789/tcp 2>/dev/null || true
 
-# Stabilization Delay: Wait for network/filesystem to be ready
+# Stabilization Delay
 sleep 5
 
 exec openclaw gateway run 2>&1
@@ -448,8 +458,56 @@ EOF
     chmod +x "$SERVICE_DIR/run" "$SERVICE_DIR/log/run"
     success_msg
     
-    echo -e "${GREEN}\nHardened service configured successfully!${NC}"
+    echo -e "${GREEN}\nOpenClaw native service configured!${NC}"
     echo -e "Manage with: ${GREEN}sv up openclaw${NC} | ${RED}sv down openclaw${NC}"
+}
+
+setup_n8n_service_files() {
+    if ! command -v n8n >/dev/null 2>&1; then
+        error_msg "n8n is not installed. Please run Option 3 first."
+        return
+    fi
+
+    status_msg "Creating n8n service files"
+    mkdir -p "$N8N_SERVICE_DIR/log"
+    mkdir -p "$HOME/.n8n/logs"
+
+    # Create the hardened run script
+    cat <<EOF > "$N8N_SERVICE_DIR/run"
+#!/bin/bash
+# 📱 n8n Native Service
+termux-wake-lock
+export TERMUX_BIN='$TERMUX_BIN'
+export PATH="\$TERMUX_BIN:\$PATH"
+export HOME='$HOME'
+
+# Janitor Phase: Source environment and clean ports
+if [ -f "\$HOME/n8n_server/config/n8n.env" ]; then
+    set -a
+    source "\$HOME/n8n_server/config/n8n.env"
+    set +a
+fi
+
+# Port cleanup
+fuser -k 5678/tcp 2>/dev/null || true
+
+# Stabilization Delay
+sleep 5
+
+exec n8n start 2>&1
+EOF
+
+    # Create the log run script
+    cat <<EOF > "$N8N_SERVICE_DIR/log/run"
+#!/bin/bash
+exec svlogd -tt \$HOME/.n8n/logs
+EOF
+
+    chmod +x "$N8N_SERVICE_DIR/run" "$N8N_SERVICE_DIR/log/run"
+    success_msg
+    
+    echo -e "${GREEN}\nn8n native service configured!${NC}"
+    echo -e "Manage with: ${GREEN}sv up n8n${NC} | ${RED}sv down n8n${NC}"
 }
 
 remove_service_files() {
@@ -495,8 +553,15 @@ uninstall_gemini() {
     execute "npm uninstall -g @google/gemini-cli" "Uninstalling Gemini CLI"
 }
 
+remove_n8n_service_files() {
+    execute "sv down /data/data/com.termux/files/usr/var/service/n8n 2>/dev/null || true" "Stopping n8n service"
+    execute "rm -rf '$N8N_SERVICE_DIR'" "Removing n8n service configuration"
+    echo -e "${GREEN}n8n native service configuration removed.${NC}"
+}
+
 uninstall_n8n() {
     echo -e "${YELLOW}Cleaning up n8n...${NC}"
+    remove_n8n_service_files
     crontab -l 2>/dev/null | grep -v "n8n-monitor.sh" | crontab -
     execute "npm uninstall -g n8n" "Uninstalling n8n"
     rm -rf "$HOME/n8n_server" "$HOME/.n8n"
