@@ -2,14 +2,14 @@
 
 # ==============================================================================
 # 🦞 OPENCLAW ANDROID TOOLKIT (Termux)
-# Version: 1.3.1
+# Version: 1.3.3
 # Purpose: Clean installation, patching, and uninstallation of OpenClaw & Gemini.
 # ==============================================================================
 
 set -e
 
 # --- 1. COLORS & GLOBALS ---
-VERSION="1.3.1"
+VERSION="1.3.3"
 ARCH_TYPE=$(uname -m)
 GREEN=$(printf '\033[0;32m')
 BLUE=$(printf '\033[0;34m')
@@ -31,6 +31,28 @@ export npm_execpath="$TERMUX_BIN/npm"
 status_msg() { echo -ne "\r${CLEAR_LINE}${BLUE}==>${NC} $1... "; }
 error_msg() { echo -e "\r${CLEAR_LINE}${RED}Error:${NC} $1"; }
 success_msg() { echo -e "${GREEN}Done.${NC}"; }
+wait_to_continue() { read -p "$(printf "\n${BLUE}>>${NC} Press Enter to continue...")" junk; }
+
+confirm_action() {
+    # Flush buffer
+    read -t 0.1 -n 10000 junk 2>/dev/null || true
+    echo -ne "\n${BLUE}>>${NC} $1? [${GREEN}ENTER${NC}=Proceed / ${RED}b${NC}=Go Back]: "
+    
+    while true; do
+        IFS= read -r -s -n1 key
+        # Handle Enter (empty string or newline)
+        if [[ -z "$key" || "$key" == $'\n' ]]; then
+            echo -e "${GREEN}Proceeding...${NC}"
+            return 0
+        fi
+        # Handle 'b' or 'B' for Back
+        if [[ "$key" == "b" || "$key" == "B" ]]; then
+            echo -e "${RED}Returning to menu...${NC}"
+            sleep 0.5
+            return 1
+        fi
+    done
+}
 
 # Execute a command with a loading spinner
 execute() {
@@ -78,11 +100,15 @@ check_termux() {
 # --- 3. OPENCLAW INSTALLATION ---
 
 install_openclaw() {
+    confirm_action "install/repair OpenClaw" || return 0
     rm -f "$LOG_FILE"
     echo -e "${YELLOW}Verbose logs are being written to $LOG_FILE${NC}\n"
 
-    # System Integrity
+    # Cleanup any existing OpenClaw processes for a clean start
+    status_msg "Stopping existing OpenClaw tasks"
+    pkill -9 -f "openclaw" 2>/dev/null || true
     rm -f /data/data/com.termux/files/usr/var/run/crond.pid
+    success_msg
 
     execute "pkg update -y && pkg upgrade -y" "Updating system"
     execute "pkg install -y tur-repo build-essential libvips openssh git jq python3 pkg-config tmux binutils termux-services ffmpeg golang" "Installing dependencies"
@@ -90,7 +116,8 @@ install_openclaw() {
 
     # Fix isolated Node paths
     if [ -d "/data/data/com.termux/files/usr/opt/nodejs-22/bin" ]; then
-        execute "ln -sf '$TERMUX_BIN/node' $TERMUX_BIN/node && ln -sf '$TERMUX_BIN/npm' $TERMUX_BIN/npm" "Verifying Node.js links"
+        NODE_OPT_BIN="/data/data/com.termux/files/usr/opt/nodejs-22/bin"
+        execute "ln -sf '$NODE_OPT_BIN/node' '$TERMUX_BIN/node' && ln -sf '$NODE_OPT_BIN/npm' '$TERMUX_BIN/npm'" "Verifying Node.js links"
     fi
 
     execute "NODE_LLAMA_CPP_SKIP_DOWNLOAD=true npm install -g openclaw@latest --unsafe-perm --ignore-scripts --silent" "Installing OpenClaw (Safe Mode)"
@@ -104,7 +131,7 @@ install_openclaw() {
     mkdir -p "$HOME/.openclaw/workspace/memory"
     mkdir -p "$HOME/.openclaw/workspace/skills"
     
-    openclaw doctor >> "$LOG_FILE" 2>&1 || true
+    openclaw doctor --yes >> "$LOG_FILE" 2>&1 || true
     if [ -f "$CONFIG_PATH" ]; then
         tmp_cfg=$(mktemp)
         jq '.plugins.entries.telegram.enabled = true | 
@@ -114,7 +141,7 @@ install_openclaw() {
     fi
     success_msg
     
-    execute "openclaw plugins install telegram whatsapp slack || true" "Pre-installing channel plugins"
+    execute "openclaw plugins install telegram whatsapp slack --yes || true" "Pre-installing channel plugins"
     apply_patches "silent"
     execute "openclaw plugins list" "Warming up plugin engine"
     
@@ -124,6 +151,7 @@ install_openclaw() {
     echo -e "2. Use ${BLUE}Option 3${NC} in this script to configure background service."
     echo -e "\n${RED}🛑 DO NOT USE 'openclaw update'${NC}"
     echo -e "   This will break patches. Use Option 1 of this script to update."
+    wait_to_continue
 }
 
 apply_patches() {
@@ -155,6 +183,7 @@ apply_patches() {
 # --- 4. GEMINI CLI INSTALLATION ---
 
 install_gemini_cli() {
+    confirm_action "setup Gemini CLI" || return 0
     echo -e "\n${BLUE}✨ Setting up Gemini CLI...${NC}"
     execute "pkg update -y" "Updating packages"
     execute "pkg install -y python make clang pkg-config" "Installing build tools"
@@ -173,18 +202,28 @@ install_gemini_cli() {
     else
         error_msg "Installation finished but 'gemini' command not found in PATH."
     fi
+    wait_to_continue
 }
 
 # --- 5. N8N INSTALLATION ---
 
 install_n8n() {
+    confirm_action "install/repair n8n Server" || return 0
     echo -e "\n${BLUE}📱 Setting up n8n Android Infrastructure...${NC}"
+    
+    # Clean slate for n8n/OpenClaw tasks
+    status_msg "Stopping existing tasks"
+    pkill -9 -f "n8n" 2>/dev/null || true
+    pkill -9 -f "openclaw" 2>/dev/null || true
+    success_msg
+
     execute "pkg update -y" "Updating packages"
     execute "pkg install -y nodejs-22 python3 autossh tmux cronie" "Installing dependencies"
     
     # Fix Node links if needed
     if [ -d "/data/data/com.termux/files/usr/opt/nodejs-22/bin" ]; then
-        execute "ln -sf '$TERMUX_BIN/node' $TERMUX_BIN/node && ln -sf '$TERMUX_BIN/npm' $TERMUX_BIN/npm" "Verifying Node.js links"
+        NODE_OPT_BIN="/data/data/com.termux/files/usr/opt/nodejs-22/bin"
+        execute "ln -sf '$NODE_OPT_BIN/node' '$TERMUX_BIN/node' && ln -sf '$NODE_OPT_BIN/npm' '$TERMUX_BIN/npm'" "Verifying Node.js links"
     fi
 
     execute "npm install -g n8n" "Installing n8n globally"
@@ -299,11 +338,13 @@ EOF
 
     echo -e "\n${GREEN}✅ n8n successfully installed and automated!${NC}"
     echo -e "Use ${BLUE}Option 4${NC} to configure the GCP Tunnel Bridge."
+    wait_to_continue
 }
 
 # --- 6. GCP BRIDGE SETUP ---
 
 setup_n8n_gcp() {
+    confirm_action "configure GCP Bridge" || return 0
     echo -e "\n${BLUE}🌐 GCP BRIDGE (SSH TUNNEL) CONFIGURATION${NC}"
     echo -e "This will expose your n8n instance to the internet via a GCP VM.\n"
     
@@ -345,24 +386,27 @@ EOF
     cat "$HOME/.ssh/id_rsa.pub"
     echo -e "\n2. Once done, run the monitor to start the tunnel:"
     echo -e "   ${GREEN}~/n8n_server/scripts/n8n-monitor.sh${NC}"
+    wait_to_continue
 }
 
 # --- 7. SERVICE MANAGEMENT ---
 
 manage_service() {
-    echo -e "\n${BLUE}⚙️  BACKGROUND SERVICE MANAGEMENT${NC}"
-    echo "1) OpenClaw: Enable/Setup Service"
-    echo "2) OpenClaw: Disable/Remove Service"
-    echo "3) n8n: Restart/Revive All"
-    echo "4) Back"
-    read -p "Select option [1-4]: " SVC_CHOICE
+    while true; do
+        echo -e "\n${BLUE}⚙️  BACKGROUND SERVICE MANAGEMENT${NC}"
+        echo "1) OpenClaw: Enable/Setup Service"
+        echo "2) OpenClaw: Disable/Remove Service"
+        echo "3) n8n: Restart/Revive All"
+        echo "4) Back to Main Menu"
+        read -p "Select option [1-4]: " SVC_CHOICE
 
-    case $SVC_CHOICE in
-        1) setup_service_files ;;
-        2) remove_service_files ;;
-        3) "$HOME/n8n_server/scripts/n8n-monitor.sh"; echo -e "${GREEN}n8n and Tunnel restart triggered.${NC}" ;;
-        *) return ;;
-    esac
+        case $SVC_CHOICE in
+            1) confirm_action "setup background service" && { setup_service_files; wait_to_continue; } ;;
+            2) confirm_action "remove background service" && { remove_service_files; wait_to_continue; } ;;
+            3) confirm_action "restart n8n/Tunnel" && { "$HOME/n8n_server/scripts/n8n-monitor.sh"; echo -e "${GREEN}n8n and Tunnel restart triggered.${NC}"; wait_to_continue; } ;;
+            *) return ;;
+        esac
+    done
 }
 
 setup_service_files() {
@@ -417,21 +461,23 @@ remove_service_files() {
 # --- 8. UNINSTALLATION LOGIC ---
 
 uninstall_menu() {
-    echo -e "\n${RED}⚠️  UNINSTALLATION MENU${NC}"
-    echo "1) Remove OpenClaw only"
-    echo "2) Remove Gemini CLI only"
-    echo "3) Remove n8n only"
-    echo "4) Full Clean (Everything)"
-    echo "5) Cancel"
-    read -p "Select option [1-5]: " UN_CHOICE
+    while true; do
+        echo -e "\n${RED}⚠️  UNINSTALLATION MENU${NC}"
+        echo "1) Remove OpenClaw only"
+        echo "2) Remove Gemini CLI only"
+        echo "3) Remove n8n only"
+        echo "4) Full Clean (Everything)"
+        echo "5) Back to Main Menu"
+        read -p "Select option [1-5]: " UN_CHOICE
 
-    case $UN_CHOICE in
-        1) soft_cleanup_openclaw; echo -e "${GREEN}\nOpenClaw removed.${NC}" ;;
-        2) uninstall_gemini; echo -e "${GREEN}\nGemini CLI removed.${NC}" ;;
-        3) uninstall_n8n; echo -e "${GREEN}\nn8n removed.${NC}" ;;
-        4) full_cleanup; echo -e "${GREEN}\nEverything cleaned.${NC}" ;;
-        *) echo -e "${BLUE}Uninstallation cancelled.${NC}\n" ;;
-    esac
+        case $UN_CHOICE in
+            1) confirm_action "uninstall OpenClaw" && { soft_cleanup_openclaw; echo -e "${GREEN}\nOpenClaw removed.${NC}"; wait_to_continue; } ;;
+            2) confirm_action "uninstall Gemini CLI" && { uninstall_gemini; echo -e "${GREEN}\nGemini CLI removed.${NC}"; wait_to_continue; } ;;
+            3) confirm_action "uninstall n8n" && { uninstall_n8n; echo -e "${GREEN}\nn8n removed.${NC}"; wait_to_continue; } ;;
+            4) confirm_action "PERFORM FULL CLEANUP (Everything)" && { full_cleanup; echo -e "${GREEN}\nEverything cleaned.${NC}"; wait_to_continue; } ;;
+            *) return ;;
+        esac
+    done
 }
 
 soft_cleanup_openclaw() {
@@ -465,28 +511,35 @@ full_cleanup() {
 
 # --- 9. MAIN MENU ---
 
-clear
-echo -e "${BLUE}====================================================${NC}"
-echo -e "${BLUE}       🦞 OPENCLAW ANDROID TOOLKIT v$VERSION        ${NC}"
-echo -e "${BLUE}====================================================${NC}"
-echo -e "1) ${GREEN}Install/Repair${NC} OpenClaw"
-echo -e "2) ${YELLOW}Install/Repair${NC} Gemini CLI"
-echo -e "3) ${BLUE}Install/Repair${NC} n8n Server"
-echo -e "4) ${YELLOW}Configure${NC} GCP Bridge (for n8n)"
-echo -e "5) ${BLUE}Manage${NC} Background Services"
-echo -e "6) ${RED}Uninstall${NC} Software"
-echo -e "7) Exit"
-echo -e "${BLUE}====================================================${NC}"
-read -p "What would you like to do? [1-7]: " MAIN_CHOICE
+show_menu() {
+    clear
+    echo -e "${BLUE}====================================================${NC}"
+    echo -e "${BLUE}       🦞 OPENCLAW ANDROID TOOLKIT v$VERSION        ${NC}"
+    echo -e "${BLUE}====================================================${NC}"
+    echo -e "1) ${GREEN}Install/Repair${NC} OpenClaw"
+    echo -e "2) ${YELLOW}Install/Repair${NC} Gemini CLI"
+    echo -e "3) ${BLUE}Install/Repair${NC} n8n Server"
+    echo -e "4) ${YELLOW}Configure${NC} GCP Bridge (for n8n)"
+    echo -e "5) ${BLUE}Manage${NC} Background Services"
+    echo -e "6) ${RED}Uninstall${NC} Software"
+    echo -e "7) Exit"
+    echo -e "${BLUE}====================================================${NC}"
+}
 
 check_termux
 
-case $MAIN_CHOICE in
-    1) install_openclaw ;;
-    2) install_gemini_cli ;;
-    3) install_n8n ;;
-    4) setup_n8n_gcp ;;
-    5) manage_service ;;
-    6) uninstall_menu ;;
-    *) exit 0 ;;
-esac
+while true; do
+    show_menu
+    read -p "What would you like to do? [1-7]: " MAIN_CHOICE
+
+    case $MAIN_CHOICE in
+        1) install_openclaw ;;
+        2) install_gemini_cli ;;
+        3) install_n8n ;;
+        4) setup_n8n_gcp ;;
+        5) manage_service ;;
+        6) uninstall_menu ;;
+        7) exit 0 ;;
+        *) echo -e "${RED}Invalid option.${NC}"; sleep 1 ;;
+    esac
+done
