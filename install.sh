@@ -2,14 +2,14 @@
 
 # ==============================================================================
 # 🦞 OPENCLAW ANDROID TOOLKIT (Termux)
-# Version: 1.6.3
+# Version: 1.6.4
 # Purpose: Deep cleanup, non-interactive initialization, and port management.
 # ==============================================================================
 
 set -e
 
 # --- 1. COLORS & GLOBALS ---
-VERSION="1.6.3"
+VERSION="1.6.4"
 
 
 ARCH_TYPE=$(uname -m)
@@ -391,6 +391,24 @@ install_gemini_cli() {
     fi
     
     if command -v gemini >/dev/null 2>&1 || command -v gemini-cli >/dev/null 2>&1; then
+        status_msg "Initializing Gemini environment"
+        mkdir -p "$HOME/.gemini"
+        
+        # Patch for Android rename bug (ENOENT during projects.json save)
+        local gemini_root=""
+        if [ "$PKG_MANAGER" == "pnpm" ]; then
+            gemini_root=$(pnpm root -g 2>/dev/null | sed 's|node_modules$|.pnpm|')
+        else
+            gemini_root=$(npm root -g 2>/dev/null)
+        fi
+
+        if [ -n "$gemini_root" ]; then
+            # Surgically find the projectRegistry.js and patch async rename calls
+            # Uses regex to preserve variable names (e.g., tmpPath, registryPath)
+            find -L "$gemini_root" -type f -name "projectRegistry.js" -exec sed -i 's|await fs.promises.rename(\([^,]*\), \([^)]*\))|await fs.promises.copyFile(\1, \2); await fs.promises.unlink(\1)|g' {} + 2>/dev/null || true
+        fi
+        success_msg
+
         echo -e "${GREEN}\n✅ Gemini CLI successfully $([[ "$mode" == "repair" ]] && echo "repaired" || echo "installed")!${NC}"
         echo -e "You can now run: ${BLUE}gemini --help${NC}"
     else
