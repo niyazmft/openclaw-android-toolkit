@@ -6,7 +6,7 @@ This workspace is dedicated to maintaining the `install.sh` script and associate
 Provide a "one-click" high-performance installation process for OpenClaw, Gemini CLI, and n8n on non-rooted Android devices. Tested on `armv8l` and `aarch64` architectures (Android 9+).
 
 ## 🛠 Core Components
-- `install.sh`: The main automation script (v1.6.3).
+- `install.sh`: The main automation script (v1.6.6).
 - `README.md`: Combined documentation with visual setup guides.
 - `assets/`: Screenshots and media for documentation.
 - `.gitignore`: Standard exclusion list for Android/Termux development.

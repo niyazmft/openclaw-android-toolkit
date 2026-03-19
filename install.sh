@@ -2,14 +2,14 @@
 
 # ==============================================================================
 # 🦞 OPENCLAW ANDROID TOOLKIT (Termux)
-# Version: 1.6.4
-# Purpose: Deep cleanup, non-interactive initialization, and port management.
+# Version: 1.6.6
+# Purpose: Clean slate installation to prevent ENOTEMPTY rename errors.
 # ==============================================================================
 
 set -e
 
 # --- 1. COLORS & GLOBALS ---
-VERSION="1.6.4"
+VERSION="1.6.6"
 
 
 ARCH_TYPE=$(uname -m)
@@ -281,10 +281,14 @@ install_openclaw() {
     [[ "$PKG_MANAGER" == "back" ]] && return 0
 
         if [[ "$mode" == "full" ]]; then
+            OPENCLAW_ROOT=$(get_openclaw_root "$PKG_MANAGER")
 
-        OPENCLAW_ROOT=$(get_openclaw_root "$PKG_MANAGER")
+            status_msg "Preparing clean slate"
+            rm -rf "$OPENCLAW_ROOT"
+            success_msg
 
-        if [ "$PKG_MANAGER" == "npm" ]; then
+            if [ "$PKG_MANAGER" == "npm" ]; then
+
             execute "NODE_LLAMA_CPP_SKIP_DOWNLOAD=true npm install -g openclaw@latest --unsafe-perm --ignore-scripts --silent" "Installing OpenClaw via npm (Safe Mode)"
         else
             execute "NODE_LLAMA_CPP_SKIP_DOWNLOAD=true pnpm add -g openclaw@latest --ignore-scripts --prefer-offline" "Installing OpenClaw via pnpm (Offline Optimized)"
@@ -383,6 +387,17 @@ install_gemini_cli() {
     success_msg
 
     if [[ "$mode" == "full" ]]; then
+        local gemini_root=""
+        if [ "$PKG_MANAGER" == "pnpm" ]; then
+            gemini_root="$(pnpm root -g 2>/dev/null)/@google/gemini-cli"
+        else
+            gemini_root="$(npm root -g 2>/dev/null)/@google/gemini-cli"
+        fi
+        
+        status_msg "Preparing clean slate"
+        rm -rf "$gemini_root"
+        success_msg
+
         if [ "$PKG_MANAGER" == "npm" ]; then
             execute "npm i -g @google/gemini-cli" "Installing @google/gemini-cli via npm"
         else
@@ -457,6 +472,17 @@ install_n8n() {
     [[ "$PKG_MANAGER" == "back" ]] && return 0
 
     if [[ "$mode" == "full" ]]; then
+        local n8n_root=""
+        if [ "$PKG_MANAGER" == "pnpm" ]; then
+            n8n_root="$(pnpm root -g 2>/dev/null)/n8n"
+        else
+            n8n_root="$(npm root -g 2>/dev/null)/n8n"
+        fi
+        
+        status_msg "Preparing clean slate"
+        rm -rf "$n8n_root"
+        success_msg
+
         if [ "$PKG_MANAGER" == "npm" ]; then
             execute "npm install -g n8n" "Installing n8n globally via npm"
         else
@@ -658,12 +684,26 @@ manage_pm2() {
 
         case $PM2_CHOICE in
             1) execute "npm install -g pm2" "Installing PM2 Globally" ;;
-            2) command -v openclaw >/dev/null 2>&1 && execute "pm2 start \"openclaw gateway run\" --name openclaw && pm2 save" "Starting OpenClaw" || error_msg "OpenClaw missing."; wait_to_continue ;;
-            3) command -v n8n >/dev/null 2>&1 && execute "pm2 start n8n --name n8n $([ -f "$HOME/n8n_server/config/n8n.env" ] && echo "--env '$HOME/n8n_server/config/n8n.env'") && pm2 save" "Starting n8n" || error_msg "n8n missing."; wait_to_continue ;;
+            2) 
+                if command -v openclaw >/dev/null 2>&1; then
+                    execute "pkill -9 -f openclaw 2>/dev/null || true; sleep 2; pm2 start \"openclaw gateway run\" --name openclaw --interpreter none && pm2 save" "Starting OpenClaw in PM2"
+                else
+                    error_msg "OpenClaw missing."
+                fi
+                wait_to_continue ;;
+            3) 
+                if command -v n8n >/dev/null 2>&1; then
+                    local n8n_env=""
+                    [ -f "$HOME/n8n_server/config/n8n.env" ] && n8n_env="--env '$HOME/n8n_server/config/n8n.env'"
+                    execute "pkill -9 -f n8n 2>/dev/null || true; sleep 2; pm2 start n8n --name n8n $n8n_env --interpreter none && pm2 save" "Starting n8n in PM2"
+                else
+                    error_msg "n8n missing."
+                fi
+                wait_to_continue ;;
             4) pm2 logs ;;
             5) pm2 status; wait_to_continue ;;
-            6) execute "pm2 restart all && pm2 save" "Restarting and saving" ;;
-            7) execute "pm2 kill" "Stopping PM2"; wait_to_continue ;;
+            6) execute "pm2 stop all; pkill -9 -f 'openclaw|n8n' 2>/dev/null || true; sleep 2; pm2 start all && pm2 save" "Restarting all processes safely" ;;
+            7) execute "pm2 kill" "Stopping PM2" ;;
             *) return ;;
         esac
     done
