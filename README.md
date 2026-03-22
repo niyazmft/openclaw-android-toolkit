@@ -25,24 +25,33 @@ A high-performance, automated toolkit for running [OpenClaw](https://github.com/
 ## 🚀 Quick Start
 
 ### 1. Environment Setup
+
 Install **Termux** from [F-Droid](https://f-droid.org/en/packages/com.termux/). Do **not** use the Play Store version as it is obsolete.
 
 ### 2. Run the Toolkit
+
 Execute the following command to start the interactive toolkit:
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/niyazmft/openclaw-android-toolkit/main/install.sh | bash
 ```
+
 > 💡 **Smart Repair (v1.5.0+):** If a tool is already installed, the toolkit offers a **[R] Repair** mode. Use this to fix Android-specific patches in seconds without re-downloading the entire package.
 
 ### 3. Onboard (For OpenClaw)
+
 Initialize your account and API providers:
+
 ```bash
 openclaw onboard
 ```
+
 *Select **QuickStart** and choose an external provider (OpenRouter, OpenAI, etc.).*
 
 ### 4. Background Service (Optimized)
+
 To keep OpenClaw running even after you close Termux:
+
 1. Run the toolkit again and choose **Option 5 (Manage PM2 Processes)**.
 2. Select **Start OpenClaw with PM2**.
 3. View logs with: `pm2 logs openclaw`
@@ -70,13 +79,13 @@ To keep OpenClaw running even after you close Termux:
 
 Run the toolkit and select **Option 7** to access the modular uninstallation menu. Each option provides a detailed summary of the impact before you confirm:
 
-- **Remove OpenClaw only**: 
+- **Remove OpenClaw only**:
   - Choice of **Soft Uninstall** (keeps memories/skills) or **Deep Uninstall** (full wipe).
   - Automatically cleans up PM2 and background services.
-- **Remove Gemini CLI / n8n**: 
+- **Remove Gemini CLI / n8n**:
   - Full removal of application binaries and configurations.
   - **n8n**: Surgically kills the GCP tunnel (port 5678) and removes the watchdog cron.
-- **Wipe Software Stack (Reset)**: 
+- **Wipe Software Stack (Reset)**:
   - Performs a batch "Deep Uninstall" of all three applications.
   - **Safe Reset**: Cleans all toolkit-specific data but **preserves system packages** (Node.js, Git, Python, etc.) so your other Termux apps don't break.
 
@@ -87,12 +96,15 @@ Run the toolkit and select **Option 7** to access the modular uninstallation men
 This toolkit includes a professional-grade setup for running **n8n** on Android with an optional GCP bridge for secure public access.
 
 ### 1. Installation
+
 Run the toolkit and choose **Option 3 (Install/Repair n8n Server)**. This will:
+
 - Install n8n, Python 3, and process monitors.
 - Configure a 5-minute watchdog (Cron) to ensure 24/7 uptime.
 - Set up an optimized memory cap for your device.
 
 ### 2. Monitoring & Control
+
 - **Manual Restart**: Choose **Option 5** in the toolkit or run `~/n8n_server/scripts/n8n-monitor.sh`.
 - **View n8n Dashboard**: If not using a bridge, access locally at `http://localhost:5678`.
 
@@ -103,23 +115,27 @@ Run the toolkit and choose **Option 3 (Install/Repair n8n Server)**. This will:
 To expose your n8n instance securely to the internet (`https://yourdomain.com`), follow this walkthrough:
 
 ### Step 1: Prepare the GCP VM
-1.  **Create Instance**: In GCP Console, create an `e2-micro` VM (Debian/Ubuntu).
-2.  **Static IP**: Reserve a static external IP for this VM.
-3.  **Firewall**: Allow **TCP 80** (HTTP), **443** (HTTPS), and **22** (SSH).
+
+1. **Create Instance**: In GCP Console, create an `e2-micro` VM (Debian/Ubuntu).
+2. **Static IP**: Reserve a static external IP for this VM.
+3. **Firewall**: Allow **TCP 80** (HTTP), **443** (HTTPS), and **22** (SSH).
 
 ### Step 2: Set up DNS
-1.  Point your domain (e.g., `n8n.example.com`) to the GCP VM's static IP.
+
+1. Point your domain (e.g., `n8n.example.com`) to the GCP VM's static IP.
 
 ### Step 3: Configure Nginx (on GCP VM)
-1.  Install Nginx and Certbot: `sudo apt install nginx certbot python3-certbot-nginx`
-2.  Create a site config that proxies to `localhost:5678`.
-3.  Secure it with SSL: `sudo certbot --nginx -d yourdomain.com`
+
+1. Install Nginx and Certbot: `sudo apt install nginx certbot python3-certbot-nginx`
+2. Create a site config that proxies to `localhost:5678`.
+3. Secure it with SSL: `sudo certbot --nginx -d yourdomain.com`
 
 ### Step 4: Establish the Tunnel
-1.  Run the toolkit on your Android device and choose **Option 4 (Configure GCP Bridge)**.
-2.  Follow the prompts to enter your VM IP and Domain.
-3.  Copy the generated **SSH Public Key** and paste it into the GCP VM's `~/.ssh/authorized_keys` file.
-4.  The monitor script will now automatically maintain a secure `autossh` tunnel to the VM.
+
+1. Run the toolkit on your Android device and choose **Option 4 (Configure GCP Bridge)**.
+2. Follow the prompts to enter your VM IP and Domain.
+3. Copy the generated **SSH Public Key** and paste it into the GCP VM's `~/.ssh/authorized_keys` file.
+4. The monitor script will now automatically maintain a secure `autossh` tunnel to the VM.
 
 ---
 
@@ -140,15 +156,19 @@ To expose your n8n instance securely to the internet (`https://yourdomain.com`),
 ## 🔄 Maintenance
 
 ### 🛡 Safe Updates & Smart Repair
+
 **⚠️ WARNING:** Never use the built-in `openclaw update` command. It will overwrite the Android patches and break the application.
 
 To update or repair safely:
+
 1. Run the `install.sh` script.
-2. Choose **Option 1 (Install/Repair)**. 
+2. Choose **Option 1 (Install/Repair)**.
 3. Select **[R] Repair** to fix patches instantly (2s) or **[U] Update** for a full version upgrade.
 
 ### 🔋 Battery Optimization
+
 To prevent Android from killing the background process, run:
+
 ```bash
 termux-wake-lock
 ```
@@ -163,5 +183,28 @@ termux-wake-lock
 
 ---
 
+## 🛠 Code Quality
+
+This project implements a "Zero-Waste" and "Self-Healing" quality gate to maintain high standards for all contributions.
+
+### Tools Used
+
+- **ESLint v10**: Modern JavaScript and JSON linting via Flat Config.
+- **Stylelint**: Standardized CSS quality checks.
+- **Markdownlint**: Documentation consistency enforcement.
+- **Husky & lint-staged**: Automated pre-commit hooks to auto-fix code.
+- **Self-Healing**: Custom Python scripts to safely refactor unused code.
+
+### Usage
+
+Run the full quality audit locally:
+
+```bash
+pnpm run lint:all
+```
+
+---
+
 ## 📄 License
+
 Distributed under the MIT License. See `LICENSE` for more information.

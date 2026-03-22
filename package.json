@@ -1,0 +1,40 @@
+{
+  "name": "openclaw-android",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint:js": "eslint '**/*.{js,mjs}'",
+    "lint:css": "stylelint '**/*.css' --allow-empty-input",
+    "lint:md": "markdownlint '**/*.md'",
+    "lint:all": "pnpm run lint:js && pnpm run lint:css && pnpm run lint:md",
+    "prepare": "husky"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.32.1",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
+    "eslint-plugin-jsonc": "^3.1.2",
+    "globals": "^17.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "markdownlint-cli": "^0.48.0",
+    "stylelint": "^17.5.0",
+    "stylelint-config-standard": "^40.0.0"
+  },
+  "lint-staged": {
+    "*.{js,mjs}": [
+      "eslint --fix"
+    ],
+    "*.css": [
+      "stylelint --fix"
+    ],
+    "*.md": [
+      "markdownlint --fix"
+    ]
+  }
+}
