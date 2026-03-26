@@ -2,14 +2,14 @@
 
 # ==============================================================================
 # 🦞 OPENCLAW ANDROID TOOLKIT (Termux)
-# Version: 1.6.7
-# Purpose: Fix update logic by removing prefer-offline and adding force flags.
+# Version: 1.6.9
+# Purpose: Standardize package detection names to fix Gemini auto-detection.
 # ==============================================================================
 
 set -e
 
 # --- 1. COLORS & GLOBALS ---
-VERSION="1.6.7"
+VERSION="1.6.9"
 
 
 ARCH_TYPE=$(uname -m)
@@ -377,7 +377,7 @@ install_gemini_cli() {
         smart_pkg_install python make clang pkg-config
     fi
 
-    PKG_MANAGER=$(select_package_manager "gemini-cli")
+    PKG_MANAGER=$(select_package_manager "@google/gemini-cli")
     [[ "$PKG_MANAGER" == "back" ]] && return 0
     
     status_msg "Setting NDK environment"
