@@ -306,18 +306,21 @@ install_openclaw() {
     fi
 
     if [ -f "$CONFIG_PATH" ]; then
+        status_msg "Optimizing plugin configuration"
         tmp_cfg=$(mktemp)
+        # 1. Enable standard channels
+        # 2. Set Termux binary path
+        # 3. PURGE conflicting local installs/paths for standard channels
         jq '.plugins.entries.telegram.enabled = true | 
             .plugins.entries.whatsapp.enabled = true | 
             .plugins.entries.slack.enabled = true |
-            .env.PATH = "'"$PREFIX"'/bin:/bin"' "$CONFIG_PATH" > "$tmp_cfg" && mv "$tmp_cfg" "$CONFIG_PATH"
+            .env.PATH = "'"$PREFIX"'/bin:/bin" |
+            del(.plugins.installs[]? | select(. == "telegram" or . == "whatsapp" or . == "slack")) |
+            (.plugins.load.paths // []) |= map(select(test("/extensions/(telegram|whatsapp|slack)$") | not))' "$CONFIG_PATH" > "$tmp_cfg" && mv "$tmp_cfg" "$CONFIG_PATH"
+        success_msg
     fi
-    success_msg
     
     if [[ "$mode" == "full" ]]; then
-        for plugin in telegram whatsapp slack; do
-            execute "NODE_OPTIONS='--max-old-space-size=1536' yes '' | openclaw plugins install $plugin || true" "Pre-installing $plugin plugin"
-        done
         apply_patches "silent"
         execute "NODE_OPTIONS='--max-old-space-size=1536' openclaw plugins list" "Warming up plugin engine"
     fi
@@ -377,7 +380,7 @@ install_gemini_cli() {
         smart_pkg_install python make clang pkg-config
     fi
 
-    PKG_MANAGER=$(select_package_manager "gemini-cli")
+    PKG_MANAGER=$(select_package_manager "@google/gemini-cli")
     [[ "$PKG_MANAGER" == "back" ]] && return 0
     
     status_msg "Setting NDK environment"
