@@ -14,4 +14,4 @@ npm-debug.log*
 # Temp files
 *.tmp
 *.swp
-firebase-debug.log
+firebase-debug.logui-dist-v*.tar.gz
