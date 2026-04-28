@@ -878,11 +878,19 @@ install_paperclip() {
     SAFE_LIMIT=$(get_mem_limit)
     mkdir -p "$HOME/paperclip/config"
     
+    local auth_secret="paperclip-dev-secret-$(openssl rand -hex 8)"
+    # Preserve existing auth secret across repairs to avoid invalidating sessions
+    if [ -f "$HOME/paperclip/config/paperclip.env" ]; then
+        local existing_secret
+        existing_secret=$(grep '^BETTER_AUTH_SECRET=' "$HOME/paperclip/config/paperclip.env" 2>/dev/null | cut -d= -f2-)
+        [ -n "$existing_secret" ] && auth_secret="$existing_secret"
+    fi
+    
     cat <<EOF > "$HOME/paperclip/config/paperclip.env"
 DATABASE_URL=postgres://paperclip:paperclip@localhost:5432/paperclip
 PORT=3100
 SERVE_UI=true
-BETTER_AUTH_SECRET=paperclip-dev-secret-$(openssl rand -hex 8)
+BETTER_AUTH_SECRET=$auth_secret
 NODE_OPTIONS="--max-old-space-size=$SAFE_LIMIT"
 PAPERCLIP_HOME=$HOME/paperclip
 PAPERCLIP_INSTANCE_ID=default
@@ -1225,12 +1233,15 @@ uninstall_paperclip() {
     # Stop processes
     execute "sv down '$PAPERCLIP_SERVICE_DIR' 2>/dev/null || true" "Stopping Paperclip service"
     pkill -9 -f "paperclip" 2>/dev/null || true
-    pg_ctl -D "$PREFIX/var/lib/postgresql" stop 2>/dev/null || true
     command -v pm2 >/dev/null 2>&1 && pm2 delete paperclip >> "$LOG_FILE" 2>&1 || true
+    # Note: PostgreSQL is a shared system service — we do NOT stop it.
+    # Other tools or user data may depend on it.
 
-    echo -e "${YELLOW}⚠️  Paperclip source code and database preserved.${NC}"
+    echo -e "${YELLOW}⚠️  Paperclip process stopped. Source code and database preserved.${NC}"
     echo -e "   Source: ${BLUE}$HOME/paperclip${NC}"
     echo -e "   Database: ${BLUE}postgres://paperclip:paperclip@localhost:5432/paperclip${NC}"
+    echo -e "   PostgreSQL is still running. Stop manually if no other services need it:"
+    echo -e "   ${BLUE}pg_ctl -D \$PREFIX/var/lib/postgresql stop${NC}"
     echo -e "   Remove manually if desired."
 }
 

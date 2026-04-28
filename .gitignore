@@ -14,4 +14,8 @@ npm-debug.log*
 # Temp files
 *.tmp
 *.swp
-firebase-debug.logui-dist-v*.tar.gz
+firebase-debug.log
+
+# Paperclip prebuilt UI tarballs (downloaded from GitHub releases)
+ui-dist-v*.tar.gz
+
