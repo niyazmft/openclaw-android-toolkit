@@ -818,8 +818,15 @@ setup_n8n_gcp() {
         if [[ "$GCP_IP" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
             local oct1 oct2 oct3 oct4
             IFS='.' read -r oct1 oct2 oct3 oct4 <<< "$GCP_IP"
-            if [ "$oct1" -le 255 ] && [ "$oct2" -le 255 ] && [ "$oct3" -le 255 ] && [ "$oct4" -le 255 ]; then
-                valid_ip=1
+            # Strip leading zeros to prevent octal interpretation in bash
+            oct1=${oct1#0}; oct2=${oct2#0}; oct3=${oct3#0}; oct4=${oct4#0}
+            # Use pattern matching to avoid octal issues
+            if [[ "$oct1" =~ ^[0-9]+$ ]] && [[ "$oct2" =~ ^[0-9]+$ ]] && [[ "$oct3" =~ ^[0-9]+$ ]] && [[ "$oct4" =~ ^[0-9]+$ ]]; then
+                if [ "$oct1" -le 255 ] && [ "$oct2" -le 255 ] && [ "$oct3" -le 255 ] && [ "$oct4" -le 255 ]; then
+                    valid_ip=1
+                else
+                    error_msg "Invalid IP address octets"
+                fi
             else
                 error_msg "Invalid IP address octets"
             fi
@@ -1180,10 +1187,10 @@ manage_service() {
             "N8N-REMOVE"       "[-]  n8n        — Disable/Remove Native Service" \
             "BACK"             "<--  BACK TO SERVICES MENU") || return
         case "$choice" in
-            OPENCLAW-SETUP)  whiptail_exit_or_back "Set up OpenClaw background service?" && { setup_service_files; whiptail_msg "OpenClaw service configured."; } ;;
-            OPENCLAW-REMOVE) whiptail_exit_or_back "Remove OpenClaw background service?" && { remove_service_files; whiptail_msg "OpenClaw service removed."; } ;;
-            N8N-SETUP)       whiptail_exit_or_back "Set up n8n background service?" && { setup_n8n_service_files; whiptail_msg "n8n service configured."; } ;;
-            N8N-REMOVE)      whiptail_exit_or_back "Remove n8n background service?" && { remove_n8n_service_files; whiptail_msg "n8n service removed."; } ;;
+            OPENCLAW-SETUP)  whiptail_confirm "Set up OpenClaw background service?" && { setup_service_files; whiptail_msg "OpenClaw service configured."; } ;;
+            OPENCLAW-REMOVE) whiptail_confirm "Remove OpenClaw background service?" && { remove_service_files; whiptail_msg "OpenClaw service removed."; } ;;
+            N8N-SETUP)       whiptail_confirm "Set up n8n background service?" && { setup_n8n_service_files; whiptail_msg "n8n service configured."; } ;;
+            N8N-REMOVE)      whiptail_confirm "Remove n8n background service?" && { remove_n8n_service_files; whiptail_msg "n8n service removed."; } ;;
             BACK|*)           return ;;
         esac
     done
@@ -1254,7 +1261,7 @@ remove_n8n_service_files() {
 
 manage_pm2() {
     if ! command -v pm2 >/dev/null 2>&1; then
-        whiptail_exit_or_back "Install PM2 globally first?" || return 0
+        whiptail_confirm "Install PM2 globally first?" || return 0
         execute "npm install -g pm2" "Installing PM2 Globally"
     fi
     while true; do
@@ -1616,7 +1623,7 @@ show_whi_menu() {
 # yesno <text>
 # Changed buttons: Yes → Exit (exits script), No → Back (returns to previous menu)
 # When user clicks Exit, we exit the script. When they click Back, we return to menu.
-whiptail_exit_or_back() {
+whiptail_confirm() {
     local text="$1"
     if ! whiptail --title "Confirm" --yes-button "Exit" --no-button "Back" --yesno "$text" 8 $WHI_COLS 3>&1 1>&2 2>&3; then
         return 1  # User pressed Back (No) - return to menu
@@ -1731,23 +1738,23 @@ menu_uninstall() {
             "BACK"       "<--  BACK TO MAIN MENU") || return
         case "$choice" in
             OPENCLAW)
-                whiptail_exit_or_back "This will remove the OpenClaw global package and background services." && { uninstall_openclaw; whiptail_msg "OpenClaw removed."; } ;;
+                whiptail_confirm "This will remove the OpenClaw global package and background services." && { uninstall_openclaw; whiptail_msg "OpenClaw removed."; } ;;
             N8N)
-                whiptail_exit_or_back "This will remove n8n and its watchdog." && { uninstall_n8n; whiptail_msg "n8n removed."; } ;;
+                whiptail_confirm "This will remove n8n and its watchdog." && { uninstall_n8n; whiptail_msg "n8n removed."; } ;;
             GEMINI)
-                whiptail_exit_or_back "This will remove the Gemini CLI global package." && { uninstall_gemini; whiptail_msg "Gemini CLI removed."; } ;;
+                whiptail_confirm "This will remove the Gemini CLI global package." && { uninstall_gemini; whiptail_msg "Gemini CLI removed."; } ;;
             HERMES)
-                whiptail_exit_or_back "This will remove the Hermes agent installation." && { uninstall_hermes; whiptail_msg "Hermes removed."; } ;;
+                whiptail_confirm "This will remove the Hermes agent installation." && { uninstall_hermes; whiptail_msg "Hermes removed."; } ;;
             OLLAMA)
-                whiptail_exit_or_back "This will remove Ollama and downloaded models." && { uninstall_ollama; whiptail_msg "Ollama removed."; } ;;
+                whiptail_confirm "This will remove Ollama and downloaded models." && { uninstall_ollama; whiptail_msg "Ollama removed."; } ;;
             PI)
-                whiptail_exit_or_back "This will remove the Pi Coding Agent." && { uninstall_pi; whiptail_msg "Pi removed."; } ;;
+                whiptail_confirm "This will remove the Pi Coding Agent." && { uninstall_pi; whiptail_msg "Pi removed."; } ;;
             PAPERCLIP)
-                whiptail_exit_or_back "Paperclip soft-uninstall preserves source code and database. For deep uninstall (wipe everything), use UNINSTALL -> Wipe Software Stack." && { uninstall_paperclip; whiptail_msg "Paperclip removed (soft)."; } ;;
+                whiptail_confirm "Paperclip soft-uninstall preserves source code and database. For deep uninstall (wipe everything), use UNINSTALL -> Wipe Software Stack." && { uninstall_paperclip; whiptail_msg "Paperclip removed (soft)."; } ;;
             NANOBOT)
-                whiptail_exit_or_back "This will remove Nanobot AI." && { uninstall_nanobot; whiptail_msg "Nanobot AI removed."; } ;;
+                whiptail_confirm "This will remove Nanobot AI." && { uninstall_nanobot; whiptail_msg "Nanobot AI removed."; } ;;
             WIPE)
-                whiptail_exit_or_back "This will WIPE ALL applications and data. Core system packages are NOT removed." && { full_cleanup; whiptail_msg "All toolkit software removed."; } ;;
+                whiptail_confirm "This will WIPE ALL applications and data. Core system packages are NOT removed." && { full_cleanup; whiptail_msg "All toolkit software removed."; } ;;
             BACK|*) return ;;
         esac
     done
