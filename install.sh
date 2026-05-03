@@ -1251,7 +1251,9 @@ manage_pm2() {
             "back"      "Back") || return
         case "$choice" in
             openclaw)
-                if command -v openclaw >/dev/null 2>&1; then
+                local openclaw_bin=""
+                openclaw_bin=$(type -P openclaw 2>/dev/null || true)
+                if [ -n "$openclaw_bin" ]; then
                     status_msg "Clearing ports and stale processes"
                     pm2 delete openclaw 2>/dev/null || true
                     pkill -9 -f openclaw 2>/dev/null || true
@@ -1259,16 +1261,18 @@ manage_pm2() {
                     success_msg
                     PNPM_NODE_PATH=$(pnpm_root_g || true)
                     SAFE_LIMIT=$(get_mem_limit)
-                    execute "sleep 5; NODE_OPTIONS='--dns-result-order=ipv4first --max-old-space-size=$SAFE_LIMIT' OPENCLAW_TMP='$HOME/.openclaw/tmp' NODE_PATH='$PREFIX/lib/node_modules${PNPM_NODE_PATH:+:$PNPM_NODE_PATH}' npm_execpath='$TERMUX_BIN/npm' PATH='$TERMUX_BIN:\$PATH' pm2 start \"openclaw gateway run\" --name openclaw --interpreter none && pm2 save" "Starting OpenClaw in PM2 (Clean Start)"
+                    execute "sleep 5; NODE_OPTIONS='--dns-result-order=ipv4first --max-old-space-size=$SAFE_LIMIT' OPENCLAW_TMP='$HOME/.openclaw/tmp' NODE_PATH='$PREFIX/lib/node_modules${PNPM_NODE_PATH:+:$PNPM_NODE_PATH}' npm_execpath='$TERMUX_BIN/npm' PATH='$TERMUX_BIN:\$PATH' pm2 start '$openclaw_bin' --name openclaw --interpreter bash -- gateway run && pm2 save" "Starting OpenClaw in PM2 (Clean Start)"
                 else
                     error_msg "OpenClaw is not installed."
                 fi
                 ;;
             n8n)
-                if command -v n8n >/dev/null 2>&1; then
+                local n8n_bin=""
+                n8n_bin=$(type -P n8n 2>/dev/null || true)
+                if [ -n "$n8n_bin" ]; then
                     local n8n_env=""
                     [ -f "$HOME/n8n_server/config/n8n.env" ] && n8n_env="--env '$HOME/n8n_server/config/n8n.env'"
-                    execute "pkill -9 -f n8n 2>/dev/null || true; sleep 2; pm2 start n8n --name n8n $n8n_env --interpreter none && pm2 save" "Starting n8n in PM2"
+                    execute "pkill -9 -f n8n 2>/dev/null || true; sleep 2; pm2 start '$n8n_bin' --name n8n $n8n_env --interpreter bash && pm2 save" "Starting n8n in PM2"
                 else
                     error_msg "n8n is not installed."
                 fi
@@ -1277,7 +1281,7 @@ manage_pm2() {
                 local gemini_path=""
                 gemini_path=$(type -P gemini 2>/dev/null || true)
                 if [ -n "$gemini_path" ]; then
-                    execute "pm2 delete gemini 2>/dev/null || true; pm2 start '$gemini_path' --name gemini --interpreter none && pm2 save" "Starting Gemini CLI in PM2"
+                    execute "pm2 delete gemini 2>/dev/null || true; pm2 start '$gemini_path' --name gemini --interpreter bash && pm2 save" "Starting Gemini CLI in PM2"
                 else
                     error_msg "Gemini CLI is not installed."
                 fi
@@ -1289,14 +1293,16 @@ manage_pm2() {
                     hermes_path="$HOME/.hermes/bin/hermes"
                 fi
                 if [ -n "$hermes_path" ]; then
-                    execute "pm2 delete hermes 2>/dev/null || true; pm2 start '$hermes_path' --name hermes --interpreter none && pm2 save" "Starting Hermes in PM2"
+                    execute "pm2 delete hermes 2>/dev/null || true; pm2 start '$hermes_path' --name hermes --interpreter bash && pm2 save" "Starting Hermes in PM2"
                 else
                     error_msg "Hermes is not installed."
                 fi
                 ;;
             ollama)
-                if command -v ollama >/dev/null 2>&1; then
-                    execute "pm2 delete ollama 2>/dev/null || true; pm2 start ollama serve --name ollama --interpreter none && pm2 save" "Starting Ollama in PM2"
+                local ollama_bin=""
+                ollama_bin=$(type -P ollama 2>/dev/null || true)
+                if [ -n "$ollama_bin" ]; then
+                    execute "pm2 delete ollama 2>/dev/null || true; pm2 start '$ollama_bin' --name ollama --interpreter none -- serve && pm2 save" "Starting Ollama in PM2"
                 else
                     error_msg "Ollama is not installed."
                 fi
@@ -1305,7 +1311,7 @@ manage_pm2() {
                 local pi_path=""
                 pi_path=$(type -P pi 2>/dev/null || true)
                 if [ -n "$pi_path" ]; then
-                    execute "pm2 delete pi 2>/dev/null || true; pm2 start '$pi_path' --name pi --interpreter none && pm2 save" "Starting Pi in PM2"
+                    execute "pm2 delete pi 2>/dev/null || true; pm2 start '$pi_path' --name pi --interpreter bash && pm2 save" "Starting Pi in PM2"
                 else
                     error_msg "Pi is not installed."
                 fi
@@ -1326,7 +1332,7 @@ manage_pm2() {
                         sleep 2
                     fi
                     success_msg
-                    execute "pm2 delete paperclip 2>/dev/null || true; cd $HOME/paperclip; pm2 start ecosystem.config.cjs && pm2 save" "Starting Paperclip in PM2"
+                    execute "pkill -9 -f 'node.*server/dist/index.js' 2>/dev/null || true; sleep 2; pm2 delete paperclip 2>/dev/null || true; cd $HOME/paperclip; pm2 start ecosystem.config.cjs && pm2 save" "Starting Paperclip in PM2"
                 else
                     error_msg "Paperclip is not installed. Select WORKFLOWS -> Paperclip from the main menu to install."
                 fi
@@ -1335,14 +1341,14 @@ manage_pm2() {
                 local nb_path=""
                 nb_path=$(type -P nanobot 2>/dev/null || true)
                 if [ -n "$nb_path" ]; then
-                    execute "pm2 delete nanobot 2>/dev/null || true; pm2 start '$nb_path' --name nanobot --interpreter none && pm2 save" "Starting Nanobot in PM2"
+                    execute "pm2 delete nanobot 2>/dev/null || true; pm2 start '$nb_path' --name nanobot --interpreter bash && pm2 save" "Starting Nanobot in PM2"
                 else
                     error_msg "Nanobot is not installed."
                 fi
                 ;;
             logs)    pm2 logs ;;
             status)  pm2 status; ;;
-            restart) execute "pm2 stop all; pkill -9 -f 'openclaw|n8n|gemini|hermes|ollama|pi|paperclip|nanobot' 2>/dev/null || true; sleep 2; pm2 start all && pm2 save" "Restarting all processes safely" ;;
+            restart) execute "pm2 stop all; pkill -9 -f 'openclaw|n8n|gemini|hermes|ollama|pi|nanobot|node.*server/dist/index.js' 2>/dev/null || true; sleep 2; pm2 start all && pm2 save" "Restarting all processes safely" ;;
             stop)    execute "pm2 kill" "Stopping PM2" ;;
             back|*)  return ;;
         esac
@@ -1481,7 +1487,7 @@ uninstall_paperclip() {
     echo -e "${YELLOW}Cleaning up Paperclip...${NC}"
     # Stop processes
     execute "sv down '$PAPERCLIP_SERVICE_DIR' 2>/dev/null || true" "Stopping Paperclip service"
-    pkill -9 -f "paperclip" 2>/dev/null || true
+    pkill -9 -f "node.*server/dist/index.js" 2>/dev/null || true
     command -v pm2 >/dev/null 2>&1 && pm2 delete paperclip >> "$LOG_FILE" 2>&1 || true
     # Note: PostgreSQL is a shared system service — we do NOT stop it.
     # Other tools or user data may depend on it.
