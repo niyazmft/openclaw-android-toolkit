@@ -1302,7 +1302,7 @@ manage_pm2() {
                         openclaw_path="$pnpm_root/openclaw/bin/openclaw.js"
                     fi
 
-                    execute "NODE_OPTIONS='--dns-result-order=ipv4first --max-old-space-size=$SAFE_LIMIT' OPENCLAW_TMP='$HOME/.openclaw/tmp' NODE_PATH='$PREFIX/lib/node_modules${PNPM_NODE_PATH:+:$PNPM_NODE_PATH}' npm_execpath='$TERMUX_BIN/npm' PATH='$TERMUX_BIN:\$PATH' pm2 start '$TERMUX_BIN/node' --interpreter none -- '$openclaw_path' -- gateway run && pm2 save" "Starting OpenClaw in PM2"
+                    execute "NODE_OPTIONS='--dns-result-order=ipv4first --max-old-space-size=$SAFE_LIMIT' OPENCLAW_TMP='$HOME/.openclaw/tmp' NODE_PATH='$PREFIX/lib/node_modules${PNPM_NODE_PATH:+:$PNPM_NODE_PATH}' npm_execpath='$TERMUX_BIN/npm' PATH='$TERMUX_BIN:\$PATH' pm2 start '$openclaw_path' --name openclaw --interpreter none -- gateway run && pm2 save" "Starting OpenClaw in PM2"
                 else
                     error_msg "OpenClaw is not installed."
                 fi
@@ -1322,7 +1322,7 @@ manage_pm2() {
                         n8n_path="$pnpm_root/n8n/build/server.js"
                     fi
 
-                    execute "pm2 delete n8n 2>/dev/null || true; pm2 start '$TERMUX_BIN/node' --interpreter none -- '$n8n_path' -- $n8n_env && pm2 save" "Starting n8n in PM2"
+                    execute "pm2 delete n8n 2>/dev/null || true; pm2 start '$n8n_path' --name n8n --interpreter none $n8n_env && pm2 save" "Starting n8n in PM2"
                 else
                     error_msg "n8n is not installed."
                 fi
@@ -1344,7 +1344,7 @@ manage_pm2() {
                         fi
                     fi
 
-                    execute "pm2 delete gemini 2>/dev/null || true; pm2 start '$TERMUX_BIN/node' --interpreter none -- '$gemini_bin' && pm2 save" "Starting Gemini CLI in PM2"
+                    execute "pm2 delete gemini 2>/dev/null || true; pm2 start '$gemini_bin' --name gemini --interpreter none && pm2 save" "Starting Gemini CLI in PM2"
                 else
                     error_msg "Gemini CLI is not installed."
                 fi
@@ -1382,7 +1382,7 @@ manage_pm2() {
                         pi_bin="$pnpm_root/@mariozechner/pi-coding-agent/bin/pi.js"
                     fi
 
-                    execute "pm2 delete pi 2>/dev/null || true; pm2 start '$TERMUX_BIN/node' --interpreter none -- '$pi_bin' && pm2 save" "Starting Pi in PM2"
+                    execute "pm2 delete pi 2>/dev/null || true; pm2 start '$pi_bin' --name pi --interpreter none && pm2 save" "Starting Pi in PM2"
                 else
                     error_msg "Pi is not installed."
                 fi
