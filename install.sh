@@ -1298,7 +1298,8 @@ manage_pm2() {
                     local openclaw_path="$openclaw_bin"
                     if [[ "$openclaw_bin" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
-                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        pnpm_root=$(pnpm_root_g 2>/dev/null)
+                        [[ -z "$pnpm_root" ]] && pnpm_root="$PREFIX/lib/node_modules"
                         openclaw_path="$pnpm_root/openclaw/openclaw.mjs"
                     fi
 
@@ -1318,7 +1319,8 @@ manage_pm2() {
                     local n8n_path="$n8n_bin"
                     if [[ "$n8n_bin" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
-                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        pnpm_root=$(pnpm_root_g 2>/dev/null)
+                        [[ -z "$pnpm_root" ]] && pnpm_root="$PREFIX/lib/node_modules"
                         n8n_path="$pnpm_root/n8n/packages/cli/bin/n8n"
                     fi
 
@@ -1335,7 +1337,8 @@ manage_pm2() {
                     local gemini_bin="$gemini_path"
                     if [[ "$gemini_path" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
-                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        pnpm_root=$(pnpm_root_g 2>/dev/null)
+                        [[ -z "$pnpm_root" ]] && pnpm_root="$PREFIX/lib/node_modules"
                         gemini_bin="$pnpm_root/@google/gemini-cli/bundle/gemini.js"
                     fi
 
@@ -1373,7 +1376,8 @@ manage_pm2() {
                     local pi_bin="$pi_path"
                     if [[ "$pi_path" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
-                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        pnpm_root=$(pnpm_root_g 2>/dev/null)
+                        [[ -z "$pnpm_root" ]] && pnpm_root="$PREFIX/lib/node_modules"
                         pi_bin="$pnpm_root/@mariozechner/pi-coding-agent/dist/cli.js"
                     fi
 
