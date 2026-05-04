@@ -1314,7 +1314,15 @@ manage_pm2() {
                     local n8n_env=""
                     [ -f "$HOME/n8n_server/config/n8n.env" ] && n8n_env="--env '$HOME/n8n_server/config/n8n.env'"
                     pm2 stop n8n 2>/dev/null || true
-                    execute "pm2 delete n8n 2>/dev/null || true; pm2 start '$n8n_bin' --name n8n $n8n_env && pm2 save" "Starting n8n in PM2"
+
+                    local n8n_path="$n8n_bin"
+                    if [[ "$n8n_bin" == *".local/share/pnpm"* ]]; then
+                        local pnpm_root
+                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        n8n_path="$pnpm_root/n8n/build/server.js"
+                    fi
+
+                    execute "pm2 delete n8n 2>/dev/null || true; pm2 start '$TERMUX_BIN/node' --interpreter none -- '$n8n_path' -- $n8n_env && pm2 save" "Starting n8n in PM2"
                 else
                     error_msg "n8n is not installed."
                 fi
@@ -1323,7 +1331,20 @@ manage_pm2() {
                 local gemini_path=""
                 gemini_path=$(type -P gemini 2>/dev/null || true)
                 if [ -n "$gemini_path" ]; then
-                    execute "pm2 delete gemini 2>/dev/null || true; pm2 start '$gemini_path' --name gemini && pm2 save" "Starting Gemini CLI in PM2"
+
+                    local gemini_bin="$gemini_path"
+                    if [[ "$gemini_path" == *".local/share/pnpm"* ]]; then
+                        local pnpm_root
+                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        # Gemini CLI main entry varies - try to find it
+                        if [ -f "$pnpm_root/@google/gemini-cli/dist/index.js" ]; then
+                            gemini_bin="$pnpm_root/@google/gemini-cli/dist/index.js"
+                        elif [ -f "$pnpm_root/gemini-cli/index.js" ]; then
+                            gemini_bin="$pnpm_root/gemini-cli/index.js"
+                        fi
+                    fi
+
+                    execute "pm2 delete gemini 2>/dev/null || true; pm2 start '$TERMUX_BIN/node' --interpreter none -- '$gemini_bin' && pm2 save" "Starting Gemini CLI in PM2"
                 else
                     error_msg "Gemini CLI is not installed."
                 fi
@@ -1353,7 +1374,15 @@ manage_pm2() {
                 local pi_path=""
                 pi_path=$(type -P pi 2>/dev/null || true)
                 if [ -n "$pi_path" ]; then
-                    execute "pm2 delete pi 2>/dev/null || true; pm2 start '$pi_path' --name pi && pm2 save" "Starting Pi in PM2"
+
+                    local pi_bin="$pi_path"
+                    if [[ "$pi_path" == *".local/share/pnpm"* ]]; then
+                        local pnpm_root
+                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        pi_bin="$pnpm_root/@mariozechner/pi-coding-agent/bin/pi.js"
+                    fi
+
+                    execute "pm2 delete pi 2>/dev/null || true; pm2 start '$TERMUX_BIN/node' --interpreter none -- '$pi_bin' && pm2 save" "Starting Pi in PM2"
                 else
                     error_msg "Pi is not installed."
                 fi
