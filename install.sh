@@ -1319,7 +1319,7 @@ manage_pm2() {
                     if [[ "$n8n_bin" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
                         pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
-                        n8n_path="$pnpm_root/n8n/build/server.js"
+                        n8n_path="$pnpm_root/n8n/packages/cli/bin/n8n"
                     fi
 
                     execute "pm2 delete n8n 2>/dev/null || true; pm2 start '$n8n_path' --name n8n --interpreter none $n8n_env && pm2 save" "Starting n8n in PM2"
@@ -1336,12 +1336,7 @@ manage_pm2() {
                     if [[ "$gemini_path" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
                         pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
-                        # Gemini CLI main entry varies - try to find it
-                        if [ -f "$pnpm_root/@google/gemini-cli/dist/index.js" ]; then
-                            gemini_bin="$pnpm_root/@google/gemini-cli/dist/index.js"
-                        elif [ -f "$pnpm_root/gemini-cli/index.js" ]; then
-                            gemini_bin="$pnpm_root/gemini-cli/index.js"
-                        fi
+                        gemini_bin="$pnpm_root/@google/gemini-cli/bundle/gemini.js"
                     fi
 
                     execute "pm2 delete gemini 2>/dev/null || true; pm2 start '$gemini_bin' --name gemini --interpreter none && pm2 save" "Starting Gemini CLI in PM2"
@@ -1379,7 +1374,7 @@ manage_pm2() {
                     if [[ "$pi_path" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
                         pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
-                        pi_bin="$pnpm_root/@mariozechner/pi-coding-agent/bin/pi.js"
+                        pi_bin="$pnpm_root/@mariozechner/pi-coding-agent/dist/cli.js"
                     fi
 
                     execute "pm2 delete pi 2>/dev/null || true; pm2 start '$pi_bin' --name pi --interpreter none && pm2 save" "Starting Pi in PM2"
