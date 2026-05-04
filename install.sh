@@ -1299,7 +1299,7 @@ manage_pm2() {
                     if [[ "$openclaw_bin" == *".local/share/pnpm"* ]]; then
                         local pnpm_root
                         pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
-                        openclaw_path="$pnpm_root/openclaw/bin/openclaw.js"
+                        openclaw_path="$pnpm_root/openclaw/openclaw.mjs"
                     fi
 
                     execute "NODE_OPTIONS='--dns-result-order=ipv4first --max-old-space-size=$SAFE_LIMIT' OPENCLAW_TMP='$HOME/.openclaw/tmp' NODE_PATH='$PREFIX/lib/node_modules${PNPM_NODE_PATH:+:$PNPM_NODE_PATH}' npm_execpath='$TERMUX_BIN/npm' PATH='$TERMUX_BIN:\$PATH' pm2 start '$openclaw_path' --name openclaw --interpreter none -- gateway run && pm2 save" "Starting OpenClaw in PM2"
