@@ -1290,11 +1290,19 @@ manage_pm2() {
                     pm2 delete openclaw 2>/dev/null || true
                     rm -f "$HOME/.openclaw/tmp/openclaw.lock"
                     success_msg
-                    
+
                     PNPM_NODE_PATH=$(pnpm_root_g || true)
                     SAFE_LIMIT=$(get_mem_limit)
-                    
-                    execute "NODE_OPTIONS='--dns-result-order=ipv4first --max-old-space-size=$SAFE_LIMIT' OPENCLAW_TMP='$HOME/.openclaw/tmp' NODE_PATH='$PREFIX/lib/node_modules${PNPM_NODE_PATH:+:$PNPM_NODE_PATH}' npm_execpath='$TERMUX_BIN/npm' PATH='$TERMUX_BIN:\$PATH' pm2 start '$openclaw_bin' --name openclaw -- gateway run && pm2 save" "Starting OpenClaw in PM2"
+
+                    # If using pnpm shim, find actual binary to avoid PM2 interpreting bash as JS
+                    local openclaw_path="$openclaw_bin"
+                    if [[ "$openclaw_bin" == *".local/share/pnpm"* ]]; then
+                        local pnpm_root
+                        pnpm_root=$(pnpm_root_g 2>/dev/null || echo "$PREFIX/lib/node_modules")
+                        openclaw_path="$pnpm_root/openclaw/bin/openclaw.js"
+                    fi
+
+                    execute "NODE_OPTIONS='--dns-result-order=ipv4first --max-old-space-size=$SAFE_LIMIT' OPENCLAW_TMP='$HOME/.openclaw/tmp' NODE_PATH='$PREFIX/lib/node_modules${PNPM_NODE_PATH:+:$PNPM_NODE_PATH}' npm_execpath='$TERMUX_BIN/npm' PATH='$TERMUX_BIN:\$PATH' pm2 start '$TERMUX_BIN/node' --interpreter none -- '$openclaw_path' -- gateway run && pm2 save" "Starting OpenClaw in PM2"
                 else
                     error_msg "OpenClaw is not installed."
                 fi
