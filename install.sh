@@ -671,11 +671,11 @@ install_gemini_cli() {
         fi
     fi
 
-    # Apply patches to prevent ENOENT errors during registry writes
+# Apply patches to prevent ENOENT errors during registry writes
     GEMINI_ROOT="$(get_global_node_path)"
-    if [ -d "$GEMINI_ROOT" ]; then
+    if command -v gemini >/dev/null 2>&1 || [ -d "$GEMINI_ROOT" ]; then
         status_msg "Patching Gemini CLI for Android"
-        find -L "$GEMINI_ROOT" -type f -name "projectRegistry.js" -exec sed -i 's|await fs.promises.rename(\([^,]*\), \([^)]*\))|await fs.promises.copyFile(\1, \2); await fs.promises.unlink(\1)|g' {} + 2>/dev/null || true
+        find -L "$GEMINI_ROOT" -type f -name 'projectRegistry.js' -exec sed -i 's|await fs.promises.rename(\([^,]*\), \([^)]*\))|await fs.promises.copyFile(\1, \2); await fs.promises.unlink(\1)|g' {} + 2>/dev/null || true
         success_msg
 
         echo -e "${GREEN}\nGemini CLI successfully $([[ "$mode" == "repair" ]] && echo "repaired" || echo "installed")!${NC}"
