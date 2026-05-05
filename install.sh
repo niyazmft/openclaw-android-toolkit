@@ -1662,16 +1662,14 @@ show_whi_menu() {
 }
 
 # yesno <text>
-# Changed buttons: Yes → Exit (exits script), No → Back (returns to previous menu)
-# When user clicks Exit, we exit the script. When they click Back, we return to menu.
+# Standard confirmation dialog: Yes → proceed, No → cancel
+# Returns 0 if user confirms (Yes), 1 if user cancels (No)
 whiptail_confirm() {
     local text="$1"
-    if ! whiptail --title "Confirm" --yes-button "Exit" --no-button "Back" --yesno "$text" 8 $WHI_COLS 3>&1 1>&2 2>&3; then
-        return 1  # User pressed Back (No) - return to menu
+    if ! whiptail --title "Confirm" --yes-button "Yes" --no-button "No" --yesno "$text" 8 $WHI_COLS 3>&1 1>&2 2>&3; then
+        return 1  # User pressed No - return to menu
     fi
-    # User pressed Exit (Yes) - exit the entire script
-    echo -e "${YELLOW}Exiting...${NC}"
-    exit 0
+    return 0  # User pressed Yes - proceed
 }
 
 # msgbox <text>
