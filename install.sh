@@ -946,6 +946,9 @@ install_hermes() {
     fi
 
     echo -e "\n${BLUE}${mode^}ing Hermes Agent...${NC}"
+    echo -e "${YELLOW}NOTE: Hermes requires compiling Rust dependencies which takes${NC}"
+    echo -e "${YELLOW}15-45 minutes on Termux. This is normal - please be patient.${NC}"
+    echo -e "${YELLOW}You will see compilation progress in the output below.${NC}"
 
     # Pre-install build dependencies that upstream often fails on
     smart_pkg_install python clang rust make pkg-config libffi openssl binutils
@@ -980,11 +983,12 @@ install_hermes() {
     export ANDROID_API_LEVEL=${android_api_level}
     export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=clang
 
-    # Run upstream installer without strict execute wrapper to allow graceful fallback
+    # Run upstream installer - stream output to terminal so user can see progress
     local hermes_tmp_log; hermes_tmp_log=$(mktemp)
     local hermes_exit=0
-    status_msg "Running Hermes upstream installer"
-    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash > "$hermes_tmp_log" 2>&1 || hermes_exit=$?
+    status_msg "Running Hermes upstream installer (this takes 15-45 minutes on Termux)"
+    # Stream output to both terminal and log file
+    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash 2>&1 | tee "$hermes_tmp_log" || hermes_exit=$?
     cat "$hermes_tmp_log" >> "$LOG_FILE"
 
     # Upstream installer may return 0 even when pip fails inside it (maturin/jiter error).
@@ -1019,10 +1023,11 @@ install_hermes() {
             ensure_jiter_armv8l "$venv_path/bin/pip"
             # Prefer pre-built binary wheels where available to skip Rust compilation
             "$venv_path/bin/pip" install jiter pydantic-core --prefer-binary --no-build-isolation --quiet 2>>"$LOG_FILE" || true
-            # Retry with Termux-specific constraints
+            # Retry with Termux-specific constraints - stream output to see progress
             if [ -f "$HOME/.hermes/hermes-agent/constraints-termux.txt" ]; then
+                echo -e "${YELLOW}Compiling Hermes Python package (this takes 10-20 minutes)...${NC}"
                 "$venv_path/bin/pip" install -e "$HOME/.hermes/hermes-agent[termux]" \
-                    -c "$HOME/.hermes/hermes-agent/constraints-termux.txt" --no-build-isolation >> "$LOG_FILE" 2>&1 || true
+                    -c "$HOME/.hermes/hermes-agent/constraints-termux.txt" --no-build-isolation 2>&1 | tee -a "$LOG_FILE" || true
             fi
         fi
         success_msg
