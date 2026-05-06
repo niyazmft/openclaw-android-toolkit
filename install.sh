@@ -988,7 +988,8 @@ install_hermes() {
     local hermes_exit=0
     status_msg "Running Hermes upstream installer (this takes 15-45 minutes on Termux)"
     # Stream output to both terminal and log file
-    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash 2>&1 | tee "$hermes_tmp_log" || hermes_exit=$?
+    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash 2>&1 | tee "$hermes_tmp_log"
+    hermes_exit=${PIPESTATUS[1]}
     cat "$hermes_tmp_log" >> "$LOG_FILE"
 
     # Upstream installer may return 0 even when pip fails inside it (maturin/jiter error).
