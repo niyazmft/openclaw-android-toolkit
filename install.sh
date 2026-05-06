@@ -1359,7 +1359,7 @@ manage_pm2() {
                     hermes_path="$HOME/.hermes/bin/hermes"
                 fi
                 if [ -n "$hermes_path" ]; then
-                    execute "pm2 delete hermes 2>/dev/null || true; pm2 start '$hermes_path' --name hermes && pm2 save" "Starting Hermes in PM2"
+                    execute "pm2 delete hermes 2>/dev/null || true; pm2 start 'hermes gateway' --name hermes && pm2 save" "Starting Hermes in PM2"
                 else
                     error_msg "Hermes is not installed."
                 fi
