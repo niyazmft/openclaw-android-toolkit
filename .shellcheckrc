@@ -1,0 +1,2 @@
+# Disable warnings that are intentional in our script
+disable=SC2059,SC2162,SC2034,SC2086,SC1091,SC2046,SC1003,SC2155
